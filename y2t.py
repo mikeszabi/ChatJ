@@ -10,7 +10,6 @@ import ffmpeg
 import os
 # import openai
 # import pytube
-import whisper
 from pytube import YouTube
 import torch
 import gc
@@ -64,7 +63,7 @@ probe_res=probe=ffmpeg.probe(output_file)
 
 def create_audio_file(video_filename):
   # Use ffmpeg to extract the audio track from the video and create an .mp4 audio file
-  audio_filename = video_filename.replace(".mp4", ".mp3")
+  audio_filename = video_filename.replace(".mp4", ".wav")
   stream = ffmpeg.input(video_filename)
   stream = ffmpeg.output(stream, audio_filename)
   ffmpeg.run(stream)
