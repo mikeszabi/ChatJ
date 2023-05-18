@@ -1,2 +1,4 @@
 **/config/.env
-*.spyproject*
+*spyproject*
+*pycache*
+*checkpoints*
