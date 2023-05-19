@@ -46,7 +46,7 @@ def get_recommendation(chat_history):
     )
 
     return completion.choices[0].message['content']
-@st.cache_data
+@st.experimental_memo
 def get_dataset():
     if os.path.exists(r"../data/prep_products_"+partner+".csv"):
         prep_data = pd.read_csv(r"../data/prep_products_"+partner+".csv")
