@@ -13,8 +13,8 @@ load_dotenv(r'../config/.env')
 
 def translate_ms(text):
     # Add your key and endpoint
-    key = os.getenv('ITQS_AZURE_MSTRANSLATOR_KEY')
-    endpoint = os.getenv('ITQS_AZURE_MSTRANSLATOR_ENDPOINT')
+    key = os.getenv('AZURE_MSTRANSLATOR_KEY')
+    endpoint = os.getenv('AZURE_MSTRANSLATOR_ENDPOINT')
 
     # location, also known as region.
     # required if you're using a multi-service or regional (not global) resource. It can be found in the Azure portal on the Keys and Endpoint page.

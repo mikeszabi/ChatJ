@@ -8,7 +8,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-load_dotenv(r'../config/.env')
+load_dotenv(r'../.env')
 
 openai.api_type = "azure"
 openai.api_key = os.getenv('ITQS_AZURE_OPENAI_KEY')
@@ -18,7 +18,7 @@ openai.api_version = os.getenv('ITQS_AZURE_API_VERSION')
 data_path=r'../data'
 tqdm.pandas()
 
-partner='prakiker'
+partner='praktiker'
 
 def prepare_dataset(df):
     df['Category'] = df['Category'].apply(lambda x: x.replace("/", " "))
