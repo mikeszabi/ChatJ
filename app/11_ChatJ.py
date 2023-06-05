@@ -48,12 +48,23 @@ else:
 st.text_input("You: ", placeholder="type your question", key="input", on_change=clear_text_input)
 clear_chat = st.button("Clear chat", key="clear_chat", on_click=clear_chat_data)
 
+with st.sidebar:
+    add_radio = st.radio(
+        "Choose a language",
+        ("Hungarian", "English")
+    )
+
+if add_radio == 'English':
+    lang='en'
+else:
+    lang='hun'
+
 if st.session_state['question']:
     question = st.session_state['question']
     print("Object before run: ", message_objects)
     message_objects.append({"role": "user", "content": question})
     query_vector = search.get_customer_question_embeddings(question)
-    results = search.get_topk_related_product(query_vector, conn, k=3)
+    results = search.get_topk_related_product(query_vector, conn, language=lang, k=3)
     for i, prod in enumerate(results.docs):
         # score = 1 - float(prod.vector_score)
         soup = BeautifulSoup(prod.text)
@@ -66,7 +77,7 @@ if st.session_state['question']:
     message_objects.append(
         {"role": "assistant", "content": "Ezek közül a következőt ajánlom: "})
 
-    result = search.get_recommendation(message_objects)
+    result = search.get_recommendation(message_objects,language=lang)
     message_objects.append({"role": "assistant", "content": result})
     st.session_state['chat_history'].append((question, result))
     st.session_state['messages'] = message_objects

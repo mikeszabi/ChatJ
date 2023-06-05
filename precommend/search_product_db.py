@@ -94,18 +94,21 @@ def get_customer_question_embeddings(query):
    query_vector = np.array(query_vector).astype(np.float32).tobytes()
    return query_vector
 
-def get_topk_related_product(query_vector, conn, k=3):
+def get_topk_related_product(query_vector, conn, language='hu', k=3):
     print("Searching for similar posts...")
     results = search_vectors(query_vector, conn, top_k=3)
-    for i, prod in enumerate(results.docs):
-        score = 1 - float(prod.vector_score)
-        soup = BeautifulSoup(prod.text)
-        print(f"\t{i}. {soup.text} (Score: {round(score ,3) })")
+    # for i, prod in enumerate(results.docs):
+    #     score = 1 - float(prod.vector_score)
+    #     soup = BeautifulSoup(prod.text)
+    #     print(f"\t{i}. {soup.text} (Score: {round(score ,3) })")
     return results
 
-def get_recommendation(chat_history):
+def get_recommendation(chat_history,language='hun'):
     completion = openai.ChatCompletion.create(
         engine="gpt-35-turbo-deployment",
         messages=chat_history
     )
-    return completion.choices[0].message['content']
+    comp_text=completion.choices[0].message['content']
+    if language=='en':
+        comp_text=translator.translate_ms(comp_text)
+    return comp_text
