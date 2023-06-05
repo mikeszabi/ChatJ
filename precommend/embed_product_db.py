@@ -78,6 +78,7 @@ for k,v in tqdm(product_metadata.items()):
     # Create a new hash with url and embedding
     post_hash = {
         "url": v['Url'],
+        "image_url": v['ImageUrl'],
         "text": v['text'],
         "price": v['Price'],
         "embedding": vector
@@ -97,3 +98,8 @@ SCHEMA = [
 conn.ft("prods").create_index(fields=SCHEMA, definition=IndexDefinition(prefix=["prod:"], index_type=IndexType.HASH))
 
 conn.close()
+
+#### add image url-s
+# for k,v in tqdm(product_metadata.items()):
+#     conn.hset(f"prod:{k}",'image_url',v['ImageUrl'])
+    
