@@ -6,6 +6,8 @@ Created on Wed May 31 17:06:58 2023
 """
 
 ################search
+import sys
+sys.path.append(r'../')
 from bs4 import BeautifulSoup
 import os
 import numpy as np
@@ -31,14 +33,17 @@ redis_host = os.getenv('PREFIX_AZURE_REDIS_HOST_ENDPOINT')
 redis_port = os.getenv('PREFIX_AZURE_REDIS_PORT')
 redis_password = os.getenv('PREFIX_AZURE_REDIS_KEY')
  
-Top_K=3
  
-def search_vectors(query_vector, conn, top_k=3):
-    base_query = f"*=>[KNN {top_k} @embedding $vector AS vector_score]"
-    query = Query(base_query).return_fields("text", "vector_score", 'url', 'image_url','price').sort_by("vector_score").dialect(2)    
+def search_vectors(query_vector, conn, partner='praktiker', field='prod', top_k=3):
+    db_index = f"{partner}_{field}"
+    if field=='prod':
+        base_query = f"*=>[KNN {top_k} @embedding_product $vector AS vector_score]"
+    else:
+        base_query = f"*=>[KNN {top_k} @embedding_description $vector AS vector_score]"
+    redis_query = Query(base_query).return_fields("vector_score", "brand", "product", "description", 'url', 'image_url','price').sort_by("vector_score").dialect(2)    
  
     try:
-        results = conn.ft("prods").search(query, query_params={"vector": query_vector})
+        results = conn.ft(db_index).search(redis_query, query_params={"vector": query_vector})
     except Exception as e:
         print("Error calling Redis search: ", e)
         return None
@@ -57,26 +62,28 @@ def connect2redis():
 
 def get_customer_question_embeddings(query):
    # Get embedding
-   trans_q = translator.translate_ms(query)
+   trans_q = query #translator.translate_ms(query)
    query_vector = get_embedding(trans_q, engine='text-embedding-ada-002')
     
    # Convert the vector to a numpy array
    query_vector = np.array(query_vector).astype(np.float32).tobytes()
    return query_vector
 
-def get_topk_related_product(query_vector, conn, language='hu', k=3):
-    print("Searching for similar posts...")
-    results = search_vectors(query_vector, conn, top_k=k)
+
+def get_topk_related_product(query_vector, conn, partner='praktiker', field='prod', language='hu', top_k=3, sim_tsh=0.2):
+    print("Searching for similar products...")
+    results = search_vectors(query_vector, conn, partner=partner, field=field, top_k=top_k)
     brand_list=[]
     meta_list=[]
     for i, prod in enumerate(results.docs):
-       # score = 1 - float(prod.vector_score)
-        soup = BeautifulSoup(inv_text(prod.text))
-        brand_list.append({'role': "assistant", "content": f"{soup.text}"})
-        meta_list.append({'score':prod.vector_score,'price':prod.price,'url':prod.url,'image_url':prod.image_url})
+        # print(prod.vector_score)
+        if float(prod.vector_score)<sim_tsh:
+            soup = BeautifulSoup(prod.description+' '+prod.product+' '+prod.brand)
+            brand_list.append({'role': "assistant", "content": f"{soup.text}"})
+            meta_list.append({'score':prod.vector_score,'price':prod.price,'brand':prod.brand,'prod':prod.product,'url':prod.url,'image_url':prod.image_url})
     return brand_list, meta_list
 
-def get_recommendation(chat_history,language='hun'):
+def get_recommendation(chat_history,language='hu'):
     completion = openai.ChatCompletion.create(
         engine="gpt-35-turbo-deployment",
         messages=chat_history
@@ -87,30 +94,42 @@ def get_recommendation(chat_history,language='hun'):
     return comp_text
 
 
-def inv_text(text):
-    n=text.find('<p>')
-    if n>0:
-        newtext=text[n+3:]+text[:n]
-    else:
-        newtext=text
-    return newtext
+# def inv_text(text):
+#     n=text.find('<p>')
+#     if n>0:
+#         newtext=text[n+3:]+text[:n]
+#     else:
+#         newtext=text
+#     return newtext
 
 ####
-# conn=connect2redis()
-# query='Milyen nagyteljesítményű ütvefúrókat javasolsz?'
-# trans_q = translator.translate_ms(query)
-# query_vector=get_customer_question_embeddings(trans_q)
-# results=get_topk_related_product(query_vector, conn, language='hu', k=3)
+partner='praktiker'
+field='prod'
 
-# brand_list=[]
-# meta_list=[]
-# for i, prod in enumerate(results.docs):
-#    # score = 1 - float(prod.vector_score)
-#     soup = BeautifulSoup(inv_text(prod.text))
-#     brand_list.append({'role': "assistant", "content": f"{soup.text}"})
-#     meta_list.append({'price':prod.price,'url':prod.url,'image_url':prod.image_url})
+message_objects = []
+message_objects.append({"role": "system",
+                        "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
 
-# df_brand=pd_brand=pd.e(results.docs)
+
+conn=connect2redis()
+query='Fúrót tudsz ajánlani?'
+query_vector=get_customer_question_embeddings(query)
+brand_list, meta_list=get_topk_related_product(query_vector, conn, partner, field='prod', language='hu', top_k=5, sim_tsh=0.20)
+
+if len(brand_list)<4:
+    brand_list_2, meta_list_2=get_topk_related_product(query_vector, conn, partner, field='desc', language='hu', top_k=5, sim_tsh=0.20)
+    brand_list.extend(brand_list_2)
+    meta_list.extend(meta_list_2)
+    
+
+if len(brand_list)>0:
+    message_objects.append({"role": "assistant", "content": "A következő releváns termékeket találtam"})
+    message_objects.extend(brand_list)
+    message_objects.append({"role": "assistant", "content": "Íme az ajánlásom"})
+else:
+    message_objects.append({"role": "assistant", "content": "Pontosítsd a kérdést, erre nem volt találat"})
+
+result = get_recommendation(message_objects,language='hu')
 
 # # k=10
 # # conn.hget(f"prod:{k}",'image_url')
