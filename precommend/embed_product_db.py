@@ -45,17 +45,17 @@ MAX_TEXT_LENGTH = 2048
 NUMBER_PRODUCTS = 32901  
 
 
-def prepare_dataset_praktiker(df):
+def prepare_dataset_praktiker(product_data_df):
  
     # df['Category'] = df['Category'].apply(lambda x: x.replace("/", " "))
-    df.fillna('None', inplace=True)
-    df.replace(["^\s*$"], 'None', regex=True, inplace=True)
-    df['Product'] = df.apply(lambda row: f"{row['DisplayText']}, {row['Category']}, {row['Synonyms']}", axis=1)
-    df['Description'] = df['Description'].str.slice(0,MAX_TEXT_LENGTH)
+    product_data_df.fillna('None', inplace=True)
+    product_data_df.replace(["^\s*$"], 'None', regex=True, inplace=True)
+    product_data_df['Product'] = product_data_df.apply(lambda row: f"{row['DisplayText']}, {row['Category']}", axis=1)
+    product_data_df['Description'] = product_data_df['Description'].str.slice(0,MAX_TEXT_LENGTH)
     #max(product_data_df.Description.str.len())
     #df['primary_key'] = df['Identifier']
-    df.reset_index(drop=True, inplace=True)
-    product_metadata = (df.head(NUMBER_PRODUCTS).to_dict(orient='index'))
+    product_data_df.reset_index(drop=True, inplace=True)
+    product_metadata = (product_data_df.head(NUMBER_PRODUCTS).to_dict(orient='index'))
     return product_metadata
 
 def main():

@@ -62,7 +62,7 @@ def connect2redis():
 
 def get_customer_question_embeddings(query):
    # Get embedding
-   trans_q = query #translator.translate_ms(query)
+   trans_q = translator.translate_openai(query)
    query_vector = get_embedding(trans_q, engine='text-embedding-ada-002')
     
    # Convert the vector to a numpy array
@@ -103,33 +103,33 @@ def get_recommendation(chat_history,language='hu'):
 #     return newtext
 
 ####
-partner='praktiker'
-field='prod'
+# partner='praktiker'
+# field='prod'
 
-message_objects = []
-message_objects.append({"role": "system",
-                        "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
+# message_objects = []
+# message_objects.append({"role": "system",
+#                         "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
 
 
-conn=connect2redis()
-query='Fúrót tudsz ajánlani?'
-query_vector=get_customer_question_embeddings(query)
-brand_list, meta_list=get_topk_related_product(query_vector, conn, partner, field='prod', language='hu', top_k=5, sim_tsh=0.20)
+# conn=connect2redis()
+# query='Gömbgrillt keresek'
+# query_vector=get_customer_question_embeddings(query)
+# brand_list, meta_list=get_topk_related_product(query_vector, conn, partner, field='prod', language='hu', top_k=5, sim_tsh=0.25)
 
-if len(brand_list)<4:
-    brand_list_2, meta_list_2=get_topk_related_product(query_vector, conn, partner, field='desc', language='hu', top_k=5, sim_tsh=0.20)
-    brand_list.extend(brand_list_2)
-    meta_list.extend(meta_list_2)
+# if len(brand_list)<4:
+#     brand_list_2, meta_list_2=get_topk_related_product(query_vector, conn, partner, field='desc', language='hu', top_k=5, sim_tsh=0.25)
+#     brand_list.extend(brand_list_2)
+#     meta_list.extend(meta_list_2)
     
 
-if len(brand_list)>0:
-    message_objects.append({"role": "assistant", "content": "A következő releváns termékeket találtam"})
-    message_objects.extend(brand_list)
-    message_objects.append({"role": "assistant", "content": "Íme az ajánlásom"})
-else:
-    message_objects.append({"role": "assistant", "content": "Pontosítsd a kérdést, erre nem volt találat"})
+# if len(brand_list)>0:
+#     message_objects.append({"role": "assistant", "content": "A következő releváns termékeket találtam"})
+#     message_objects.extend(brand_list)
+#     message_objects.append({"role": "assistant", "content": "Íme az ajánlásom"})
+# else:
+#     message_objects.append({"role": "assistant", "content": "Pontosítsd a kérdést, erre nem volt találat"})
 
-result = get_recommendation(message_objects,language='hu')
+# result = get_recommendation(message_objects,language='hu')
 
-# # k=10
-# # conn.hget(f"prod:{k}",'image_url')
+# k=10
+# conn.hget(f"prod:{k}",'image_url')
