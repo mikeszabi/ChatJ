@@ -4,4 +4,7 @@ openai
 streamlit
 streamlit-chat
 python-dotenv
-argostranslate
+matplotlib
+plotly
+scipy
+scikit-learn
