@@ -139,8 +139,8 @@ if st.session_state['chat_history']:
         with col1:
             message(st.session_state['chat_history'][i][1], key=str(i))
             message(st.session_state['chat_history'][i][0], is_user=True, key=str(i) + '_user')
-        with col2:
-            if len(search_engine.search_history):
-                st.json(search_engine.search_history[-1]['keywords'])
-                st.json(search_engine.search_history[-1]['products_found'])
+    with col2:
+        if len(search_engine.search_history):
+            st.json(search_engine.search_history[-1]['keywords'])
+            st.json(search_engine.search_history[-1]['products_found'])
             
