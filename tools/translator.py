@@ -56,7 +56,7 @@ def translate_ms(text):
 
 
 
-def translate_openai(text,instruction='Translate this DIY product text into English:'):
+def translate_openai(text,instruction='Translate this text to English:'):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
       prompt=f"{instruction}:{text}",

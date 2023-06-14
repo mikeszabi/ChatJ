@@ -13,6 +13,7 @@ import json
 import http.client, urllib.request, urllib.parse, urllib.error, base64
 from dotenv import load_dotenv
 
+load_dotenv(r'../.env')
 
 
 class Search:

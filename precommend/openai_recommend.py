@@ -7,7 +7,8 @@ Created on Wed Jun 14 14:06:32 2023
 import os
 import re
 from bs4 import BeautifulSoup
-
+import warnings
+warnings.filterwarnings("ignore")
 from dotenv import load_dotenv
 import openai
 from tools import translator
@@ -20,12 +21,16 @@ openai.api_key = os.getenv('PREFIX_AZURE_OPENAI_KEY')
 openai.api_base = os.getenv('PREFIX_AZURE_API_BASE')
 openai.api_version = os.getenv('PREFIX_AZURE_API_VERSION')
 
-
+initial_message_objects={}
+initial_message_objects['Praktiker']={"role": "system", 
+                             "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
+initial_message_objects['Rossman']={"role": "system", 
+                             "content": "Egy chatbot vagy, aki egy drogéria termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
 
 class Recommend():
     def __init__(self):
-        self.initial_message_object={"role": "system", 
-                                     "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
+        self.store='Praktiker'
+        self.initial_message_object=initial_message_objects['Praktiker']
 
         self.questions=[]
         self.message_objects=[]
@@ -34,7 +39,8 @@ class Recommend():
         
     def clear_messages(self):
         self.message_objects = []
-        self.message_objects.append(self.initial_message_object)
+        print(initial_message_objects[self.store])
+        self.message_objects.append(initial_message_objects[self.store])
     
     # def trim_messages(self,max_l=10):
     #     message_objects_trimmed=self.message_objects[len(self.message_objects)-max_l:]
@@ -53,7 +59,10 @@ class Recommend():
             if i>=max_prod:
                 break
             prod=prod_json['document']
-            soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+            if 'description' in prod.keys():
+                soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+            else:
+                soup = BeautifulSoup(prod['displayText']+' '+prod['brand'])                
             new_message_object={'role': "assistant", "content": f"{soup.text}"}
             self.append_message(new_message_object)
             products_list.append(new_message_object)
@@ -67,20 +76,20 @@ class Recommend():
         return products_list, meta_list
         
 
-    def get_recommendation(self,language='hu',max_message=10):
+    def get_recommendation(self,language='Hungarian',max_message=10):
         completion = openai.ChatCompletion.create(
             engine="gpt-35-turbo-deployment",
             messages=self.message_objects[-max_message:]
         )
         comp_text=completion.choices[0].message['content']
-        if language=='en':
-            comp_text=translator.translate_ms(comp_text)
+        if language=='English':
+            comp_text=translator.translate_openai(comp_text)
         return comp_text
     
 def get_keywords(question):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
-      prompt=f"Extract product names in relevancy order: {question}",
+      prompt=f"Extract product name keywords in relevancy order in Hungarian: {question}",
       temperature=0.5,
       max_tokens=60,
       top_p=1.0,
