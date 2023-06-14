@@ -9,49 +9,44 @@ import pandas as pd
 import streamlit as st
 from streamlit_chat import message
 from precommend import search_product_prefix as search
+from precommend import openai_recommend as recommend
 
 st.set_page_config(layout="wide")
 
-products_list = []
-partner='praktiker'
+top_k=5
+
+# @st.cache
+# def streamlit_ui():
+#   dummy_class = BackendLogic()
+
+
+# products_list = []
+# partner='praktiker'
 col1, col2, col3= st.columns(3)
-initial_message_object={"role": "system", "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
 
 
 def clear_text_input():
     # clear_chat_data()
-    with col1:
-        st.session_state['question'] = st.session_state['input']
-        st.session_state['input'] = ""
-    message_objects = st.session_state['messages']
-    products_list = []
+    st.session_state['question'] = st.session_state['input']
+    st.session_state['input'] = ""
+
 
 def clear_chat_data():
-    message_objects = []
-    message_objects.append(initial_message_object)
+    chat_handler.clear_messages()
     st.session_state['input'] = ""
     st.session_state['chat_history'] = []
-    st.session_state['messages'] = []
         
-def trim_messages(message_objects,max_l=10):
-    message_objects_trimmed=message_objects[len(message_objects)-max_l:]
-    message_objects = []
-    message_objects.append(initial_message_object)
-    message_objects.extend(message_objects_trimmed)
-    return message_objects
-    
 
 # Initialize state variables
 
-    print('###############')
+print('###############')
 if 'question' not in st.session_state:
     st.session_state['question'] = None
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
-if 'messages' not in st.session_state:
-    message_objects = []
-    message_objects.append(initial_message_object)
-    st.session_state['messages'] = message_objects
+if 'chat_handler' not in st.session_state:
+    search_engine=search.Search()
+    chat_handler=recommend.Recommend()
 else:
     message_objects = st.session_state['messages']
 
@@ -86,16 +81,28 @@ with col1:
 # QUESTION PROCESSING
 if st.session_state['question']:
     question = st.session_state['question']
-    #print("Messages object before run: ", len(message_objects))
-    message_objects.append({"role": "user", "content": question})
+
+    chat_handler.append_message({"role": "user", "content": question})
     
-    brand_list, meta_list=search.get_topk_related_product(question, top_k=5)
-        
-    result = search.get_recommendation(message_objects,language=lang)
-    message_objects.append({"role": "assistant", "content": result})
+    keywords=recommend.get_keywords(question)
+    
+    search_item=search_engine.get_topk_related_product(keywords,top_k)
+    
+    search_engine.search_history[0]['keywords']
+    search_engine.search_history[0]['products_found']
+    
+    chat_handler.append_message(
+        {"role": "assistant", "content": "Ezeket a  termékeket találtam:"})
+    
+    
+    products_list, meta_list=chat_handler.append_products(search_item,max_prod=3)
+    
+    chat_handler.append_message(
+        {"role": "assistant", "content": "Az ajánlatom: "})
+    
+    result=chat_handler.get_recommendation()
     
     st.session_state['chat_history'].append((question, result))
-    st.session_state['messages'] = message_objects
     
     #print("Result: ", result)
     #print("Messages object after run: ", len(message_objects))
@@ -109,10 +116,6 @@ if st.session_state['question']:
             row['image_url'],
             width=100, # Manually Adjust the width of the image as per requirement
         )
-
-if len(message_objects)>15:
-    message_objects=trim_messages(message_objects,max_l=8)
-    st.session_state['messages']= message_objects
 
 if st.session_state['chat_history']:
     for i in range(len(st.session_state['chat_history'])-1, -1, -1):

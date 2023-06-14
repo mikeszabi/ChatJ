@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 14 14:06:32 2023
+
+@author: Szabi
+"""
+import os
+import re
+from bs4 import BeautifulSoup
+
+from dotenv import load_dotenv
+import openai
+from tools import translator
+
+
+load_dotenv(r'../.env')
+
+openai.api_type = "azure"
+openai.api_key = os.getenv('PREFIX_AZURE_OPENAI_KEY')
+openai.api_base = os.getenv('PREFIX_AZURE_API_BASE')
+openai.api_version = os.getenv('PREFIX_AZURE_API_VERSION')
+
+
+
+class Recommend():
+    def __init__(self):
+        self.initial_message_object={"role": "system", 
+                                     "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
+
+        self.questions=[]
+        self.message_objects=[]
+        self.message_objects.append(self.initial_message_object)
+        self.search_history=[]
+        
+    def clear_messages(self):
+        self.message_objects = []
+        self.message_objects.append(self.initial_message_object)
+    
+    # def trim_messages(self,max_l=10):
+    #     message_objects_trimmed=self.message_objects[len(self.message_objects)-max_l:]
+    #     self.message_objects = []
+    #     self.message_objects.append(self.initial_message_object)
+    #     self.message_objects.extend(message_objects_trimmed)
+        
+    def append_message(self,new_message_object):
+        self.message_objects.append(new_message_object)
+        
+    def append_products(self,search_item,max_prod=3):
+        products_list=[]
+        meta_list=[]
+        i=0
+        for prod_json in search_item['products_found']:
+            if i>=max_prod:
+                break
+            prod=prod_json['document']
+            soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+            new_message_object={'role': "assistant", "content": f"{soup.text}"}
+            self.append_message(new_message_object)
+            products_list.append(new_message_object)
+            meta_list.append({'score':prod_json['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
+            i+=1
+            self.search_hist_item={}
+            self.search_hist_item['search_item']=search_item
+            self.search_hist_item['products_list']=products_list
+            self.search_hist_item['meta_list']=meta_list
+            
+        return products_list, meta_list
+        
+
+    def get_recommendation(self,language='hu',max_message=10):
+        completion = openai.ChatCompletion.create(
+            engine="gpt-35-turbo-deployment",
+            messages=self.message_objects[-max_message:]
+        )
+        comp_text=completion.choices[0].message['content']
+        if language=='en':
+            comp_text=translator.translate_ms(comp_text)
+        return comp_text
+    
+def get_keywords(question):
+    response = openai.Completion.create(
+      engine="text-davinci-003-chatj",
+      prompt=f"Extract product names in relevancy order: {question}",
+      temperature=0.5,
+      max_tokens=60,
+      top_p=1.0,
+      frequency_penalty=0.8,
+      presence_penalty=0.0
+    )
+    resp=response["choices"][0]["text"].replace('\n','')
+
+    keywords=re.split(r'\d.\s*',resp)[1:]
+
+    print(f"keywords extracted from {question}:{keywords}")
+    return keywords

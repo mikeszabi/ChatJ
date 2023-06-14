@@ -8,93 +8,77 @@ Created on Wed May 31 17:06:58 2023
 ################search
 import sys
 sys.path.append(r'../')
-from bs4 import BeautifulSoup
 import os
-import numpy as np
-import pandas as pd
-# import ast
 import json
 import http.client, urllib.request, urllib.parse, urllib.error, base64
 from dotenv import load_dotenv
 
-from tools import translator
 
 
-load_dotenv(r'../.env')
+class Search:
+    def __init__(self):
+        # API parameters
+        load_dotenv(r'../.env')
 
-import openai
+        
+        # PREFIX
+        # self.subscription_key=os.getenv('PREFIX_SEARCH_API')
+        self.headers = {
+            # Request headers
+            'Ocp-Apim-Subscription-Key': os.getenv('PREFIX_SEARCH_API'),
+        }
+        self.btr="e551c239-d604-473c-8d48-ebcc46999c41"
+        self.conn = http.client.HTTPSConnection('api.prefixbox.com')
+        
+        self.search_history=[]
 
-openai.api_type = "azure"
-openai.api_key = os.getenv('PREFIX_AZURE_OPENAI_KEY')
-openai.api_base = os.getenv('PREFIX_AZURE_API_BASE')
-openai.api_version = os.getenv('PREFIX_AZURE_API_VERSION')
-subscription_key=os.getenv('PREFIX_SEARCH_API')
-headers = {
-    # Request headers
-    'Ocp-Apim-Subscription-Key': subscription_key,
-}
-btr="e551c239-d604-473c-8d48-ebcc46999c41"
+    
+    def __del__(self):
+        self.conn.close()
+ 
 
-def get_keywords(question):
-    response = openai.Completion.create(
-      engine="text-davinci-003-chatj",
-      prompt=f"List in bullet points what the costumer is looking for in Hungarian: {question}",
-      temperature=0.1,
-      max_tokens=60,
-      top_p=1.0,
-      frequency_penalty=0.8,
-      presence_penalty=0.0
-    )
-    keywords=response["choices"][0]["text"].replace('\n','').split('• ')
-    print(f"keywords extracted:{keywords}")
-    return keywords
-    # keyword=keywords[1]
-
-def get_topk_related_product(question,top_k):
-    print("Searching for similar products...")
-    keyword=get_keywords(question)[1]
-
-    params = urllib.parse.urlencode({
-        # Request parameters
-        'top': str(top_k),
-        'pattern': keyword,
-        'select': 'displayText, price, category, description, brand, url, imageUrl',
-        #'storeId': '{string}',
-    })
-    page=1
-    body=''
-
-    brand_list=[]
-    meta_list=[]
-    try:
-        conn = http.client.HTTPSConnection('api.prefixbox.com')
-        conn.request("GET", f"/search/results?btr={btr}&page={page}&%s" % params, body, headers)
-        response = conn.getresponse()
-        data_json=json.loads(response.read())
-        brand_list=[]
-        meta_list=[]
-        for prod_doc in data_json['documents']:
-            # print(prod_doc)
-            prod=prod_doc['document']
-            soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
-            brand_list.append({'role': "assistant", "content": f"{soup.text}"})
-            meta_list.append({'score':prod_doc['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
-        conn.close()
-    except Exception as e:
-        print("[Errno {0}] {1}".format(e.errno, e.strerror))
-
-    return brand_list, meta_list
-
-def get_recommendation(chat_history,language='hu'):
-    completion = openai.ChatCompletion.create(
-        engine="gpt-35-turbo-deployment",
-        messages=chat_history
-    )
-    comp_text=completion.choices[0].message['content']
-    if language=='en':
-        comp_text=translator.translate_ms(comp_text)
-    return comp_text
-
+    def get_topk_related_product(self,keywords,top_k):
+        # The main seacrh function
+        print("Searching for similar products...")
+        search_item={}
+        search_item['keywords']=keywords
+        keyword=keywords[0]
+    
+        params = urllib.parse.urlencode({
+            # Request parameters
+            'top': str(top_k),
+            'pattern': keyword,
+            'select': 'displayText, price, category, description, brand, url, imageUrl',
+            #'storeId': '{string}',
+        })
+    
+        search_item['products_found']=[]
+        # products_list=[]
+        # meta_list=[]
+        try:
+            self.conn.request("GET", f"/search/results?btr={self.btr}&page={1}&%s" % params, '', self.headers)
+            response = self.conn.getresponse()
+            data_json=json.loads(response.read())
+            search_item['products_found']=[]
+            for prod_json in data_json['documents']:
+                search_item['products_found'].append(prod_json)
+            
+            
+            # products_list=[]
+            # meta_list=[]
+            # for prod_doc in data_json['documents']:
+            #     # print(prod_doc)
+            #     prod=prod_doc['document']
+            #     soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+            #     products_list.append({'role': "assistant", "content": f"{soup.text}"})
+            #     meta_list.append({'score':prod_doc['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
+        except Exception as e:
+            print("[Errno {0}] {1}".format(e.errno, e.strerror))
+        
+        self.search_history.append(search_item)
+        
+        return search_item
+            
 
 # def inv_text(text):
 #     n=text.find('<p>')
