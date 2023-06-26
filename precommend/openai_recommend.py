@@ -89,7 +89,8 @@ class Recommend():
 def get_keywords(question):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
-      prompt=f"Extract product name keywords in relevancy order in Hungarian: {question}",
+      #prompt=f"Extract product name keywords in relevancy order in Hungarian: {question}",
+      prompt=f"Listázz 3 kulcsszót, amit keres a vásárló: {question}",
       temperature=0.5,
       max_tokens=60,
       top_p=1.0,

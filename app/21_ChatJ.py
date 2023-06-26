@@ -72,17 +72,6 @@ with st.sidebar:
         key='store'
     )
 
-# if bt_lang_selector == 'English':
-#     lang='en'
-# else:
-#     lang='hu'
-    
-# if bt_prod_selector == 'Praktiker':
-#     chat_handler.store='praktiker'
-# elif bt_prod_selector == 'Rossman':
-#     chat_handler.store='rossman'
-
-
 # Chat input
 with col1:
     st.text_input("You: ", placeholder="type your question", key="input", on_change=clear_text_input)
@@ -97,7 +86,7 @@ if st.session_state['question']:
     keywords=recommend.get_keywords(question)
     
     if len(keywords):
-        search_item=search_engine.get_topk_related_product(keywords,top_k)
+        search_item=search_engine.get_topk_related_product(keywords,top_k,st.session_state.store)
         
         chat_handler.append_message(
             {"role": "assistant", "content": "Ezeket a  termékeket találtam:"})
@@ -115,12 +104,7 @@ if st.session_state['question']:
             {"role": "assistant", "content": "Nem találtam ilyen terméket"})
     
     result=chat_handler.get_recommendation(st.session_state.language)
-    
-    st.session_state['chat_history'].append((question, result))
-    
-    #print("Result: ", result)
-    #print("Messages object after run: ", len(message_objects))
-    
+
     with col2:
         df_meta=pd.DataFrame(meta_list)
         st.dataframe(df_meta)
@@ -129,18 +113,22 @@ if st.session_state['question']:
             st.image(
             row['image_url'],
             width=100, # Manually Adjust the width of the image as per requirement
-        )
+         )
 
+    if 'chat_history' in st.session_state:        
+        st.session_state['chat_history'].append((question, result))
+        
+        #print("Result: ", result)
+        #print("Messages object after run: ", len(message_objects))
         
         
-
-if st.session_state['chat_history']:
-    for i in range(len(st.session_state['chat_history'])-1, -1, -1):
-        with col1:
-            message(st.session_state['chat_history'][i][1], key=str(i))
-            message(st.session_state['chat_history'][i][0], is_user=True, key=str(i) + '_user')
-    with col2:
-        if len(search_engine.search_history):
-            st.json(search_engine.search_history[-1]['keywords'])
-            st.json(search_engine.search_history[-1]['products_found'])
+    # CHAT HISTORY DISPLAY
+        for i in range(len(st.session_state['chat_history'])-1, -1, -1):
+            with col1:
+                message(st.session_state['chat_history'][i][0], is_user=True, key=str(i) + '_user')
+                message(st.session_state['chat_history'][i][1], key=str(i))
+        with col2:
+            if len(search_engine.search_history):
+                st.json(search_engine.search_history[-1]['keywords'])
+                st.json(search_engine.search_history[-1]['products_found'])
             

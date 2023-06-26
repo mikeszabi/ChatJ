@@ -25,9 +25,10 @@ subscription_key=os.getenv('PREFIX_SEARCH_API')
 def get_keywords(question):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
-      prompt=f"Extract product keywords in relevancy order in Hungarian: {question}",
+      #prompt=f"Extract product keywords in relevancy order in Hungarian for which the costumer is looking for: {question}",
+      prompt=f"Listázz 3 kulcsszót, amit keres a vásárló: {question}",
       temperature=0.5,
-      max_tokens=60,
+      max_tokens=100,
       top_p=1.0,
       frequency_penalty=0.8,
       presence_penalty=0.0
@@ -43,7 +44,7 @@ def get_attributes(question):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
       prompt=f"Extract product attribute in relevancy order in Hungarian: {question}",
-      temperature=0.5,
+      temperature=0.1,
       max_tokens=60,
       top_p=1.0,
       frequency_penalty=0.8,
@@ -80,11 +81,13 @@ question='Esetleg jól mutatna a kertben egy lampion is'
 question='Jó minőségű faszenet keresek'
 question='Looking for a knife sharpener'
 question='Akkumulátoros fűnyírót keresek'
+question='Gyümölcsfát szeretnék venni'
+question='I want to buy screws for concrete wall'
 
 
 chat_handler.append_message({"role": "user", "content": question})
 
-keywords=recommend.get_keywords(question)
+# keywords=recommend.get_keywords(question)
 keywords=get_keywords(question)
 attributes=get_attributes(question)
 

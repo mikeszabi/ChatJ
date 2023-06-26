@@ -50,7 +50,8 @@ def prepare_dataset_praktiker(product_data_df):
     # df['Category'] = df['Category'].apply(lambda x: x.replace("/", " "))
     product_data_df.fillna('None', inplace=True)
     product_data_df.replace(["^\s*$"], 'None', regex=True, inplace=True)
-    product_data_df['Product'] = product_data_df.apply(lambda row: f"{row['DisplayText']}, {row['Category']}", axis=1)
+    product_data_df['Product'] =  product_data_df['DisplayText'] #product_data_df.apply(lambda row: f"{row['DisplayText']}, {row['Category']}", axis=1)
+    product_data_df['Description']=product_data_df.apply(lambda row: f"{row['Category']}, {row['Description']}", axis=1)   
     product_data_df['Description'] = product_data_df['Description'].str.slice(0,MAX_TEXT_LENGTH)
     #max(product_data_df.Description.str.len())
     #df['primary_key'] = df['Identifier']
@@ -77,15 +78,21 @@ def main():
     
     for k,v in tqdm(product_metadata.items()):
        
-        transq=v['Product'] #translator.translate_ms(v['Product'])
-        vector_product = get_embedding(transq, engine='text-embedding-ada-002')
+        product=v['Product']
+        product_en=translator.translate_openai(product).replace('\n','')
+        vector_product = get_embedding(product, engine='text-embedding-ada-002')
+        vector_product_en = get_embedding(product_en, engine='text-embedding-ada-002')
         # convert to numpy array and bytes
         vector_product = np.array(vector_product).astype(np.float32).tobytes()
+        vector_product_en = np.array(vector_product_en).astype(np.float32).tobytes()
         # print the embedding (length = 1536)
-        transq=v['Description'] #translator.translate_ms(v['Description'])
-        vector_description = get_embedding(transq, engine='text-embedding-ada-002')
+        description=v['Description'] #translator.translate_ms(v['Description'])
+        description_en=translator.translate_openai(description).replace('\n','')
+        vector_description = get_embedding(description, engine='text-embedding-ada-002')
+        vector_description_en = get_embedding(description_en, engine='text-embedding-ada-002')
         # convert to numpy array and bytes
         vector_description = np.array(vector_description).astype(np.float32).tobytes()
+        vector_description_en = np.array(vector_description_en).astype(np.float32).tobytes()
      
         # Create a new hash with url and embedding
         post_hash = {
@@ -97,7 +104,9 @@ def main():
             "description": v['Description'],
             "price": v['Price'],
             "embedding_product": vector_product,
-            "embedding_description": vector_description
+            "embedding_description": vector_description,
+            "embedding_product_en": vector_product_en,
+            "embedding_description_en": vector_description_en
         }
      
         # create hash
@@ -108,16 +117,26 @@ def main():
     #### creating indices
     SCHEMA = [
         VectorField("embedding_product", "HNSW", {"TYPE": "FLOAT32", "DIM": 1536, "DISTANCE_METRIC": "COSINE"}),
-    ]
-    
+    ] 
     conn.ft(f"{partner}_prod").create_index(fields=SCHEMA, definition=IndexDefinition(prefix=[f"{partner}"], index_type=IndexType.HASH))
     
     
     SCHEMA = [
         VectorField("embedding_description", "HNSW", {"TYPE": "FLOAT32", "DIM": 1536, "DISTANCE_METRIC": "COSINE"}),
     ]
-    
     conn.ft(f"{partner}_desc").create_index(fields=SCHEMA, definition=IndexDefinition(prefix=[f"{partner}"], index_type=IndexType.HASH))
+    
+    SCHEMA = [
+        VectorField("embedding_product_en", "HNSW", {"TYPE": "FLOAT32", "DIM": 1536, "DISTANCE_METRIC": "COSINE"}),
+    ]   
+    conn.ft(f"{partner}_prod_en").create_index(fields=SCHEMA, definition=IndexDefinition(prefix=[f"{partner}"], index_type=IndexType.HASH))
+    
+    
+    SCHEMA = [
+        VectorField("embedding_description_en", "HNSW", {"TYPE": "FLOAT32", "DIM": 1536, "DISTANCE_METRIC": "COSINE"}),
+    ]
+    conn.ft(f"{partner}_desc_en").create_index(fields=SCHEMA, definition=IndexDefinition(prefix=[f"{partner}"], index_type=IndexType.HASH))
+    
     
     
     conn.close()

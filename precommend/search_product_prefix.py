@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 load_dotenv(r'../.env')
 
 
+btr_praktiker="e551c239-d604-473c-8d48-ebcc46999c41" 
+btr_rossmann="3aba0443-3477-426a-927a-d452bc02233c"
+
 class Search:
     def __init__(self):
         # API parameters
@@ -28,7 +31,7 @@ class Search:
             # Request headers
             'Ocp-Apim-Subscription-Key': os.getenv('PREFIX_SEARCH_API'),
         }
-        self.btr="e551c239-d604-473c-8d48-ebcc46999c41"
+        # self.btr=btr_praktiker # praktiker
         self.conn = http.client.HTTPSConnection('api.prefixbox.com')
         
         self.search_history=[]
@@ -38,12 +41,20 @@ class Search:
         self.conn.close()
  
 
-    def get_topk_related_product(self,keywords,top_k):
+    def get_topk_related_product(self,keywords,top_k,store):
         # The main seacrh function
         print("Searching for similar products...")
         search_item={}
         search_item['keywords']=keywords
         keyword=keywords[0]
+        
+        if store=='Rossman':
+            print('Searching in Rosmmann')
+            btr=btr_rossmann
+        else:
+            print('Searching in Praktiker')
+            btr=btr_praktiker
+            
     
         params = urllib.parse.urlencode({
             # Request parameters
@@ -57,7 +68,7 @@ class Search:
         # products_list=[]
         # meta_list=[]
         try:
-            self.conn.request("GET", f"/search/results?btr={self.btr}&page={1}&%s" % params, '', self.headers)
+            self.conn.request("GET", f"/search/results?btr={btr}&page={1}&%s" % params, '', self.headers)
             response = self.conn.getresponse()
             data_json=json.loads(response.read())
             search_item['products_found']=[]
