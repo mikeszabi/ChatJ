@@ -76,41 +76,53 @@ def main():
     
     p = conn.pipeline(transaction=False)
     
+    prod_problems=[]
+    
     for k,v in tqdm(product_metadata.items()):
        
-        product=v['Product']
-        product_en=translator.translate_openai(product).replace('\n','')
-        vector_product = get_embedding(product, engine='text-embedding-ada-002')
-        vector_product_en = get_embedding(product_en, engine='text-embedding-ada-002')
-        # convert to numpy array and bytes
-        vector_product = np.array(vector_product).astype(np.float32).tobytes()
-        vector_product_en = np.array(vector_product_en).astype(np.float32).tobytes()
-        # print the embedding (length = 1536)
-        description=v['Description'] #translator.translate_ms(v['Description'])
-        description_en=translator.translate_openai(description).replace('\n','')
-        vector_description = get_embedding(description, engine='text-embedding-ada-002')
-        vector_description_en = get_embedding(description_en, engine='text-embedding-ada-002')
-        # convert to numpy array and bytes
-        vector_description = np.array(vector_description).astype(np.float32).tobytes()
-        vector_description_en = np.array(vector_description_en).astype(np.float32).tobytes()
-     
-        # Create a new hash with url and embedding
-        post_hash = {
-            "id":v['Identifier'],
-            "url": v['Url'],
-            "image_url": v['ImageUrl'],
-            "brand": v['Brand'],
-            "product": v['Product'],
-            "description": v['Description'],
-            "price": v['Price'],
-            "embedding_product": vector_product,
-            "embedding_description": vector_description,
-            "embedding_product_en": vector_product_en,
-            "embedding_description_en": vector_description_en
-        }
-     
-        # create hash
-        conn.hset(name=f"{partner}:{v['Identifier']}", mapping=post_hash)
+        try:
+            product=v['Product']
+            product_en=translator.translate_openai(product).replace('\n','')
+            vector_product = get_embedding(product, engine='text-embedding-ada-002')
+            vector_product_en = get_embedding(product_en, engine='text-embedding-ada-002')
+            # convert to numpy array and bytes
+            vector_product = np.array(vector_product).astype(np.float32).tobytes()
+            vector_product_en = np.array(vector_product_en).astype(np.float32).tobytes()
+            # print the embedding (length = 1536)
+            description=v['Description'] #translator.translate_ms(v['Description'])
+            description_en=translator.translate_openai(description).replace('\n','')
+            vector_description = get_embedding(description, engine='text-embedding-ada-002')
+            vector_description_en = get_embedding(description_en, engine='text-embedding-ada-002')
+            # convert to numpy array and bytes
+            vector_description = np.array(vector_description).astype(np.float32).tobytes()
+            vector_description_en = np.array(vector_description_en).astype(np.float32).tobytes()
+         
+            # Create a new hash with url and embedding
+            post_hash = {
+                "id":v['Identifier'],
+                "url": v['Url'],
+                "image_url": v['ImageUrl'],
+                "brand": v['Brand'],
+                "product": v['Product'],
+                "description": v['Description'],
+                "price": v['Price'],
+                "embedding_product": vector_product,
+                "embedding_description": vector_description,
+                "embedding_product_en": vector_product_en,
+                "embedding_description_en": vector_description_en
+            }
+         
+            # create hash
+            conn.hset(name=f"{partner}:{v['Identifier']}", mapping=post_hash)
+        except:
+            prod_problems.append(k)
+    
+    # save products which did not make it to the db
+    with open(r'../data/prod_problems.txt', 'w') as fp:
+        for item in prod_problems:
+            # write each item on a new line
+            fp.write("%s\n" % str(item))
+        print('Done')
     
     p.execute()
     
