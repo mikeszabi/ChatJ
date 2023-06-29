@@ -34,12 +34,24 @@ redis_port = os.getenv('PREFIX_AZURE_REDIS_PORT')
 redis_password = os.getenv('PREFIX_AZURE_REDIS_KEY')
  
  
-def search_vectors(query_vector, conn, partner='praktiker', field='prod', top_k=3):
-    db_index = f"{partner}_{field}"
-    if field=='prod':
-        base_query = f"*=>[KNN {top_k} @embedding_product $vector AS vector_score]"
+def search_vectors(query_vector, conn, partner='praktiker', field='prod', language='en', top_k=3):
+    if language=='en':
+        if "prod" in field:
+            embedding='embedding_product_en'
+            db_index = f"{partner}_prod_en"
+        else:
+            embedding='embedding_description_en'
+            db_index = f"{partner}_desc_en"
     else:
-        base_query = f"*=>[KNN {top_k} @embedding_description $vector AS vector_score]"
+        if "prod" in field:
+            embedding='embedding_product'
+            db_index = f"{partner}_prod"
+        else:
+            embedding='embedding_description'
+            db_index = f"{partner}_desc"
+        
+    base_query = f"*=>[KNN {top_k} @{embedding} $vector AS vector_score]"
+
     redis_query = Query(base_query).return_fields("vector_score", "brand", "product", "description", 'url', 'image_url','price').sort_by("vector_score").dialect(2)    
  
     try:
@@ -72,7 +84,7 @@ def get_customer_question_embeddings(query):
 
 def get_topk_related_product(query_vector, conn, partner='praktiker', field='prod', language='hu', top_k=3, sim_tsh=0.2):
     print("Searching for similar products...")
-    results = search_vectors(query_vector, conn, partner=partner, field=field, top_k=top_k)
+    results = search_vectors(query_vector, conn, partner=partner, field=field, top_k=top_k, language=language)
     brand_list=[]
     meta_list=[]
     for i, prod in enumerate(results.docs):
@@ -103,18 +115,22 @@ def get_recommendation(chat_history,language='hu'):
 #     return newtext
 
 ####
-# partner='praktiker'
-# field='prod'
+conn=connect2redis()
+
+
+partner='praktiker'
 
 # message_objects = []
 # message_objects.append({"role": "system",
 #                         "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
 
 
-# conn=connect2redis()
-# query='Gömbgrillt keresek'
-# query_vector=get_customer_question_embeddings(query)
-# brand_list, meta_list=get_topk_related_product(query_vector, conn, partner, field='prod', language='hu', top_k=5, sim_tsh=0.25)
+query='Gömbgrillt keresek'
+query_vector=get_customer_question_embeddings(query)
+language='hu'
+field='desc'
+
+brand_list, meta_list=get_topk_related_product(query_vector, conn, partner=partner, field=field, language=language, top_k=5, sim_tsh=0.25)
 
 # if len(brand_list)<4:
 #     brand_list_2, meta_list_2=get_topk_related_product(query_vector, conn, partner, field='desc', language='hu', top_k=5, sim_tsh=0.25)

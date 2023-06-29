@@ -24,7 +24,7 @@ openai.api_version = os.getenv('PREFIX_AZURE_API_VERSION')
 initial_message_objects={}
 initial_message_objects['Praktiker']={"role": "system", 
                              "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
-initial_message_objects['Rossman']={"role": "system", 
+initial_message_objects['Rossmann']={"role": "system", 
                              "content": "Egy chatbot vagy, aki egy drogéria termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
 
 class Recommend():
@@ -55,23 +55,24 @@ class Recommend():
         products_list=[]
         meta_list=[]
         i=0
-        for prod_json in search_item['products_found']:
-            if i>=max_prod:
-                break
-            prod=prod_json['document']
-            if 'description' in prod.keys():
-                soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
-            else:
-                soup = BeautifulSoup(prod['displayText']+' '+prod['brand'])                
-            new_message_object={'role': "assistant", "content": f"{soup.text}"}
-            self.append_message(new_message_object)
-            products_list.append(new_message_object)
-            meta_list.append({'score':prod_json['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
-            i+=1
-            self.search_hist_item={}
-            self.search_hist_item['search_item']=search_item
-            self.search_hist_item['products_list']=products_list
-            self.search_hist_item['meta_list']=meta_list
+        if 'products_found' in search_item:
+            for prod_json in search_item['products_found']:
+                if i>=max_prod:
+                    break
+                prod=prod_json['document']
+                if 'description' in prod.keys():
+                    soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+                else:
+                    soup = BeautifulSoup(prod['displayText']+' '+prod['brand'])                
+                new_message_object={'role': "assistant", "content": f"{soup.text}"}
+                self.append_message(new_message_object)
+                products_list.append(new_message_object)
+                meta_list.append({'score':prod_json['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
+                i+=1
+                self.search_hist_item={}
+                self.search_hist_item['search_item']=search_item
+                self.search_hist_item['products_list']=products_list
+                self.search_hist_item['meta_list']=meta_list
             
         return products_list, meta_list
         
@@ -90,8 +91,8 @@ def get_keywords(question):
     response = openai.Completion.create(
       engine="text-davinci-003-chatj",
       #prompt=f"Extract product name keywords in relevancy order in Hungarian: {question}",
-      prompt=f"Listázz 3 kulcsszót, amit keres a vásárló: {question}",
-      temperature=0.5,
+      prompt=f"Listázz magyarul 3 kulcsszót, amit keres a vásárló: {question}",
+      temperature=0.1,
       max_tokens=60,
       top_p=1.0,
       frequency_penalty=0.8,
@@ -102,4 +103,21 @@ def get_keywords(question):
     keywords=re.split(r'\d.\s*',resp)[1:]
 
     print(f"keywords extracted from {question}:{keywords}")
+    return keywords
+
+def get_attributes(question):
+    response = openai.Completion.create(
+      engine="text-davinci-003-chatj",
+      prompt=f"Listázz magyarul 3 termék jellemző kulcsszót, ami fontos a vásárlónak: {question}",
+      temperature=0.1,
+      max_tokens=100,
+      top_p=1.0,
+      frequency_penalty=0.8,
+      presence_penalty=0.0
+    )
+    resp=response["choices"][0]["text"].replace('\n','')
+
+    keywords=re.split(r'\d.\s*',resp)[1:]
+
+    print(f"attributes extracted from {question}:{keywords}")
     return keywords

@@ -46,48 +46,49 @@ class Search:
         print("Searching for similar products...")
         search_item={}
         search_item['keywords']=keywords
-        keyword=keywords[0]
+        if len(keywords)>0: 
+            keyword=keywords[0]
+            
+            if store=='Rossmann':
+                print('Searching in Rosmmann')
+                btr=btr_rossmann
+            else:
+                print('Searching in Praktiker')
+                btr=btr_praktiker
+                
         
-        if store=='Rossman':
-            print('Searching in Rosmmann')
-            btr=btr_rossmann
-        else:
-            print('Searching in Praktiker')
-            btr=btr_praktiker
-            
-    
-        params = urllib.parse.urlencode({
-            # Request parameters
-            'top': str(top_k),
-            'pattern': keyword,
-            'select': 'displayText, price, category, description, brand, url, imageUrl',
-            #'storeId': '{string}',
-        })
-    
-        search_item['products_found']=[]
-        # products_list=[]
-        # meta_list=[]
-        try:
-            self.conn.request("GET", f"/search/results?btr={btr}&page={1}&%s" % params, '', self.headers)
-            response = self.conn.getresponse()
-            data_json=json.loads(response.read())
+            params = urllib.parse.urlencode({
+                # Request parameters
+                'top': str(top_k),
+                'pattern': keyword,
+                'select': 'displayText, price, category, description, brand, url, imageUrl',
+                #'storeId': '{string}',
+            })
+        
             search_item['products_found']=[]
-            for prod_json in data_json['documents']:
-                search_item['products_found'].append(prod_json)
-            
-            
             # products_list=[]
             # meta_list=[]
-            # for prod_doc in data_json['documents']:
-            #     # print(prod_doc)
-            #     prod=prod_doc['document']
-            #     soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
-            #     products_list.append({'role': "assistant", "content": f"{soup.text}"})
-            #     meta_list.append({'score':prod_doc['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
-        except Exception as e:
-            print("[Errno {0}] {1}".format(e.errno, e.strerror))
-        
-        self.search_history.append(search_item)
+            try:
+                self.conn.request("GET", f"/search/results?btr={btr}&page={1}&%s" % params, '', self.headers)
+                response = self.conn.getresponse()
+                data_json=json.loads(response.read())
+                search_item['products_found']=[]
+                for prod_json in data_json['documents']:
+                    search_item['products_found'].append(prod_json)
+                
+                
+                # products_list=[]
+                # meta_list=[]
+                # for prod_doc in data_json['documents']:
+                #     # print(prod_doc)
+                #     prod=prod_doc['document']
+                #     soup = BeautifulSoup(prod['displayText']+' '+prod['description']+' '+prod['brand'])
+                #     products_list.append({'role': "assistant", "content": f"{soup.text}"})
+                #     meta_list.append({'score':prod_doc['score'],'price':prod['price'],'brand':prod['brand'],'url':prod['url'],'image_url':prod['imageUrl']})
+            except Exception as e:
+                print("[Errno {0}] {1}".format(e.errno, e.strerror))
+            
+            self.search_history.append(search_item)
         
         return search_item
             

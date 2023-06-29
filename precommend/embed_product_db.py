@@ -39,7 +39,7 @@ redis_password = os.getenv('PREFIX_AZURE_REDIS_KEY')
 data_path=r'../data'
 tqdm.pandas()
 
-partner='praktiker' # rossman
+partner='praktiker' # rossmann
 
 MAX_TEXT_LENGTH = 2048
 NUMBER_PRODUCTS = 32901  
