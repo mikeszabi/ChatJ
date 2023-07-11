@@ -143,7 +143,10 @@ if prompt := st.chat_input("How can I help?"):
            
         else:
             st.session_state.meta_list=[]
-            st.session_state.messages.append({"role": "assistant", "content": "Nem találtam ilyen terméket, próbáljuk újra"})
+            if st.session_state.language=='English':
+                st.session_state.messages.append({"role": "assistant", "content": "I did not find any matching product, pls. try again!"})            
+            else:
+                st.session_state.messages.append({"role": "assistant", "content": "Nem találtam ilyen terméket, próbáljuk újra!"})
             chat_handler.append_message(
                 {"role": "assistant", "content": "Nem találtam ilyen terméket, próbáljuk újra"})
 

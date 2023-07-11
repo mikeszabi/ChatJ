@@ -11,7 +11,7 @@ sys.path.append(r'../')
 from bs4 import BeautifulSoup
 import os
 import numpy as np
-import pandas as pd
+# import pandas as pd
 # import ast
 import redis
 from redis.commands.search.query import Query
@@ -95,15 +95,6 @@ def get_topk_related_product(query_vector, conn, partner='praktiker', field='pro
             meta_list.append({'score':prod.vector_score,'price':prod.price,'brand':prod.brand,'prod':prod.product,'url':prod.url,'image_url':prod.image_url})
     return brand_list, meta_list
 
-def get_recommendation(chat_history,language='hu'):
-    completion = openai.ChatCompletion.create(
-        engine="gpt-35-turbo-deployment",
-        messages=chat_history
-    )
-    comp_text=completion.choices[0].message['content']
-    if language=='en':
-        comp_text=translator.translate_ms(comp_text)
-    return comp_text
 
 
 # def inv_text(text):
@@ -115,22 +106,22 @@ def get_recommendation(chat_history,language='hu'):
 #     return newtext
 
 ####
-conn=connect2redis()
+# conn=connect2redis()
 
 
-partner='praktiker'
+# partner='praktiker'
 
-# message_objects = []
-# message_objects.append({"role": "system",
-#                         "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
+# # message_objects = []
+# # message_objects.append({"role": "system",
+# #                         "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."})
 
 
-query='Gömbgrillt keresek'
-query_vector=get_customer_question_embeddings(query)
-language='hu'
-field='desc'
+# query='Gömbgrillt keresek'
+# query_vector=get_customer_question_embeddings(query)
+# language='hu'
+# field='desc'
 
-brand_list, meta_list=get_topk_related_product(query_vector, conn, partner=partner, field=field, language=language, top_k=5, sim_tsh=0.25)
+# brand_list, meta_list=get_topk_related_product(query_vector, conn, partner=partner, field=field, language=language, top_k=5, sim_tsh=0.25)
 
 # if len(brand_list)<4:
 #     brand_list_2, meta_list_2=get_topk_related_product(query_vector, conn, partner, field='desc', language='hu', top_k=5, sim_tsh=0.25)
@@ -145,7 +136,6 @@ brand_list, meta_list=get_topk_related_product(query_vector, conn, partner=partn
 # else:
 #     message_objects.append({"role": "assistant", "content": "Pontosítsd a kérdést, erre nem volt találat"})
 
-# result = get_recommendation(message_objects,language='hu')
 
 # k=10
 # conn.hget(f"prod:{k}",'image_url')

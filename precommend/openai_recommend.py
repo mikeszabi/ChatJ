@@ -24,6 +24,9 @@ openai.api_version = os.getenv('PREFIX_AZURE_API_VERSION')
 initial_message_objects={}
 initial_message_objects['Praktiker']={"role": "system", 
                              "content": "Egy chatbot vagy, aki egy barkácsáruház termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
+
+# 'I want you to act as a DIY expert. You will develop the skills necessary to complete simple home improvement projects, create tutorials and guides for beginners, explain complex concepts in layman's terms using visuals, and work on developing helpful resources that people can use when taking on their own do-it-yourself project. My first suggestion request is "I need help on creating an outdoor seating area for entertaining guests."
+
 initial_message_objects['Rossmann']={"role": "system", 
                              "content": "Egy chatbot vagy, aki egy drogéria termékeivel kacsolatban válaszolsz kérdésekre és ajánlásokat adsz."}
 
